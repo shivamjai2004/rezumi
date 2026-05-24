@@ -18,5 +18,6 @@ router.post('/text', createResumeFromText);
 router.get('/:id', getResumeById);
 router.put('/:id', updateResume);
 router.delete('/:id', deleteResume);
+router.post('/:id/export-docx', require('../controllers/docxController'));
 
 module.exports = router;

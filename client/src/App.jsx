@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import ResumeView from './pages/ResumeView'
 import Home from './pages/Home'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -21,6 +22,7 @@ function App() {
         <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
         <Route path="/builder" element={<PrivateRoute><Builder /></PrivateRoute>} />
         <Route path="/analyzer" element={<PrivateRoute><Analyzer /></PrivateRoute>} />
+        <Route path="/resume/:id" element={<PrivateRoute><ResumeView /></PrivateRoute>} />
       </Routes>
     </BrowserRouter>
   )
