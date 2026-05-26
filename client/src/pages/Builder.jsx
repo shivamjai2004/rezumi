@@ -4,8 +4,9 @@ import api from '../utils/api'
 
 export default function Builder() {
   const navigate = useNavigate()
-  const [mode, setMode] = useState('form') // 'form' or 'text'
+  const [mode, setMode] = useState('form')
   const [loading, setLoading] = useState(false)
+  const [pdfUploading, setPdfUploading] = useState(false)
   const [error, setError] = useState('')
 
   // Plain text mode
@@ -22,7 +23,6 @@ export default function Builder() {
     projects: [{ name: '', description: '', techStack: '', link: '' }]
   })
 
-  // Form helpers
   const updatePersonal = (field, value) => {
     setForm({ ...form, personalInfo: { ...form.personalInfo, [field]: value } })
   }
@@ -43,6 +43,39 @@ export default function Builder() {
     const updated = [...form.projects]
     updated[index][field] = value
     setForm({ ...form, projects: updated })
+  }
+
+  const handlePDFUpload = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    if (file.type !== 'application/pdf')
+      return setError('Please upload a PDF file only')
+
+    setPdfUploading(true)
+    setError('')
+    try {
+      const formData = new FormData()
+      formData.append('resume', file)
+      const { data } = await api.post('/analyze/extract-pdf', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+
+      const parsed = await api.post('/resume/parse-text', { plainText: data.text })
+
+      setForm({
+        ...form,
+        personalInfo: parsed.data.personalInfo || form.personalInfo,
+        education: parsed.data.education?.length > 0 ? parsed.data.education : form.education,
+        experience: parsed.data.experience?.length > 0 ? parsed.data.experience : form.experience,
+        skills: parsed.data.skills?.join(', ') || form.skills,
+        projects: parsed.data.projects?.length > 0 ? parsed.data.projects : form.projects,
+      })
+      setMode('form')
+    } catch (err) {
+      setError('Failed to extract resume data from PDF')
+    } finally {
+      setPdfUploading(false)
+    }
   }
 
   const handleTextSubmit = async () => {
@@ -90,6 +123,30 @@ export default function Builder() {
       <div className="max-w-3xl mx-auto px-6 py-10">
         <h2 className="text-2xl font-bold text-gray-800 mb-2">Build Your Resume</h2>
         <p className="text-gray-500 mb-6">AI will enhance your content automatically</p>
+
+        {/* PDF Upload Section */}
+        <div className="bg-white rounded-2xl shadow-sm p-6 mb-6 border-2 border-dashed border-indigo-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-gray-700">📤 Have an existing resume?</h3>
+              <p className="text-sm text-gray-500 mt-1">Upload your PDF and AI will pre-fill the form for you</p>
+            </div>
+            <label className="cursor-pointer bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-indigo-700 transition text-sm">
+              {pdfUploading ? '⏳ Extracting...' : '⬆ Upload PDF'}
+              <input
+                type="file"
+                accept=".pdf"
+                onChange={handlePDFUpload}
+                className="hidden"
+              />
+            </label>
+          </div>
+          {pdfUploading && (
+            <div className="mt-3 text-sm text-indigo-600 animate-pulse">
+              🤖 AI is reading your resume...
+            </div>
+          )}
+        </div>
 
         {/* Mode Toggle */}
         <div className="flex bg-gray-200 rounded-xl p-1 mb-8 w-fit">
