@@ -42,8 +42,12 @@ const parseTextToResume = async (plainText) => {
       "skills": [],
       "projects": [{ "name": "", "description": "", "techStack": "", "link": "" }]
     }
-    Return ONLY valid JSON, no markdown, no backticks, no extra text.
-    If a field is not found, leave it as empty string.
+    IMPORTANT RULES:
+    - Return ONLY valid JSON, no markdown, no backticks, no extra text
+    - Every field must be a plain string, never an object or array within a field
+    - "link" in projects must be a single URL string like "https://github.com/user/repo" or empty string ""
+    - "skills" must be a flat array of strings like ["React", "Node.js"]
+    - If a field is not found, use empty string ""
     Input: ${plainText}
   `;
   const text = await callAI(prompt);

@@ -12,6 +12,6 @@ router.use(protect);
 
 router.post('/text', analyzeText);
 router.post('/pdf', upload.single('resume'), analyzePDF);
-router.post('/extract-pdf', upload.single('resume'), extractPDFText);
+router.post('/extract-pdf', upload.any(), extractPDFText);
 
 module.exports = router;

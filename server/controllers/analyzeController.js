@@ -39,14 +39,15 @@ const analyzePDF = async (req, res) => {
 // Extract text from PDF (for builder pre-fill)
 const extractPDFText = async (req, res) => {
   try {
-    if (!req.file)
-      return res.status(400).json({ message: 'PDF file is required' });
+    const file = req.file || (req.files && req.files[0])
+    if (!file)
+      return res.status(400).json({ message: 'PDF file is required' })
 
-    const pdfData = await pdfParse(req.file.buffer);
-    res.json({ text: pdfData.text });
+    const pdfData = await pdfParse(file.buffer)
+    res.json({ text: pdfData.text })
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: err.message })
   }
-};
+}
 
 module.exports = { analyzeText, analyzePDF, extractPDFText };
