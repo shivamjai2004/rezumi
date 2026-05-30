@@ -9,11 +9,9 @@ export default function Builder() {
   const [pdfUploading, setPdfUploading] = useState(false)
   const [error, setError] = useState('')
 
-  // Plain text mode
   const [plainText, setPlainText] = useState('')
   const [title, setTitle] = useState('My Resume')
 
-  // Form mode
   const [form, setForm] = useState({
     title: 'My Resume',
     personalInfo: { name: '', email: '', phone: '', location: '', linkedin: '', github: '', summary: '' },
@@ -23,9 +21,8 @@ export default function Builder() {
     projects: [{ name: '', description: '', techStack: '', link: '' }]
   })
 
-  const updatePersonal = (field, value) => {
+  const updatePersonal = (field, value) =>
     setForm({ ...form, personalInfo: { ...form.personalInfo, [field]: value } })
-  }
 
   const updateEducation = (index, field, value) => {
     const updated = [...form.education]
@@ -48,9 +45,7 @@ export default function Builder() {
   const handlePDFUpload = async (e) => {
     const file = e.target.files[0]
     if (!file) return
-    if (file.type !== 'application/pdf')
-      return setError('Please upload a PDF file only')
-
+    if (file.type !== 'application/pdf') return setError('Please upload a PDF file only')
     setPdfUploading(true)
     setError('')
     try {
@@ -59,9 +54,7 @@ export default function Builder() {
       const { data } = await api.post('/analyze/extract-pdf', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       })
-
       const parsed = await api.post('/resume/parse-text', { plainText: data.text })
-
       setForm({
         ...form,
         personalInfo: parsed.data.personalInfo || form.personalInfo,
@@ -71,7 +64,7 @@ export default function Builder() {
         projects: parsed.data.projects?.length > 0 ? parsed.data.projects : form.projects,
       })
       setMode('form')
-    } catch (err) {
+    } catch {
       setError('Failed to extract resume data from PDF')
     } finally {
       setPdfUploading(false)
@@ -96,10 +89,7 @@ export default function Builder() {
     setLoading(true)
     setError('')
     try {
-      const payload = {
-        ...form,
-        skills: form.skills.split(',').map(s => s.trim()).filter(Boolean)
-      }
+      const payload = { ...form, skills: form.skills.split(',').map(s => s.trim()).filter(Boolean) }
       await api.post('/resume/form', payload)
       navigate('/dashboard')
     } catch (err) {
@@ -109,111 +99,126 @@ export default function Builder() {
     }
   }
 
+  const inputCls = 'input-dark'
+  const sectionCls = 'card p-5 sm:p-6 animate-fade-up'
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#0f0f13]">
 
       {/* Navbar */}
-      <nav className="bg-white shadow-sm px-8 py-4 flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-indigo-600">Rezumi</h1>
-        <button onClick={() => navigate('/dashboard')} className="text-gray-600 hover:text-indigo-600 font-medium">
-          ← Back to Dashboard
+      <nav className="navbar-glass px-4 sm:px-8 py-4 flex justify-between items-center">
+        <h1 className="text-xl sm:text-2xl font-bold text-purple-400 tracking-tight">Rezumi</h1>
+        <button
+          onClick={() => navigate('/dashboard')}
+          className="text-gray-400 hover:text-purple-400 font-medium text-sm transition-colors duration-150 flex items-center gap-1"
+        >
+          ← Dashboard
         </button>
       </nav>
 
-      <div className="max-w-3xl mx-auto px-6 py-10">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Build Your Resume</h2>
-        <p className="text-gray-500 mb-6">AI will enhance your content automatically</p>
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
 
-        {/* PDF Upload Section */}
-        <div className="bg-white rounded-2xl shadow-sm p-6 mb-6 border-2 border-dashed border-indigo-200">
-          <div className="flex items-center justify-between">
+        {/* Page heading */}
+        <div className="mb-6 animate-fade-up">
+          <h2 className="text-xl sm:text-2xl font-bold text-white">Build Your Resume</h2>
+          <p className="text-gray-500 text-sm mt-1">AI will enhance your content automatically</p>
+        </div>
+
+        {/* PDF Upload drop zone */}
+        <div className="drop-zone p-5 mb-6 animate-fade-up" style={{ animationDelay: '60ms' }}>
+          <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-4">
             <div>
-              <h3 className="font-semibold text-gray-700">📤 Have an existing resume?</h3>
-              <p className="text-sm text-gray-500 mt-1">Upload your PDF and AI will pre-fill the form for you</p>
+              <h3 className="font-semibold text-gray-200 text-sm">📤 Have an existing resume?</h3>
+              <p className="text-xs text-gray-500 mt-1">Upload your PDF and AI will pre-fill the form</p>
             </div>
-            <label className="cursor-pointer bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-indigo-700 transition text-sm">
-              {pdfUploading ? '⏳ Extracting...' : '⬆ Upload PDF'}
-              <input
-                type="file"
-                accept=".pdf"
-                onChange={handlePDFUpload}
-                className="hidden"
-              />
+            <label className="btn-glow cursor-pointer bg-purple-600 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-purple-700 text-sm whitespace-nowrap flex items-center justify-center gap-2 min-h-[44px]">
+              {pdfUploading ? (
+                <><span className="animate-spin inline-block w-3 h-3 border-2 border-white/30 border-t-white rounded-full" />Extracting...</>
+              ) : '⬆ Upload PDF'}
+              <input type="file" accept=".pdf" onChange={handlePDFUpload} className="hidden" />
             </label>
           </div>
           {pdfUploading && (
-            <div className="mt-3 text-sm text-indigo-600 animate-pulse">
-              🤖 AI is reading your resume...
-            </div>
+            <p className="mt-3 text-xs text-purple-400 animate-pulse">🤖 AI is reading your resume...</p>
           )}
         </div>
 
         {/* Mode Toggle */}
-        <div className="flex bg-gray-200 rounded-xl p-1 mb-8 w-fit">
-          <button
-            onClick={() => setMode('form')}
-            className={`px-6 py-2 rounded-lg font-medium transition ${mode === 'form' ? 'bg-white text-indigo-600 shadow' : 'text-gray-600'}`}
-          >
-            📝 Form Mode
-          </button>
-          <button
-            onClick={() => setMode('text')}
-            className={`px-6 py-2 rounded-lg font-medium transition ${mode === 'text' ? 'bg-white text-indigo-600 shadow' : 'text-gray-600'}`}
-          >
-            ✍️ Text Mode
-          </button>
+        <div className="flex bg-[#1a1a24] border border-purple-900/20 rounded-xl p-1 mb-6 w-fit animate-fade-up" style={{ animationDelay: '100ms' }}>
+          {[{ id: 'form', label: '📝 Form Mode' }, { id: 'text', label: '✍️ Text Mode' }].map(({ id, label }) => (
+            <button
+              key={id}
+              onClick={() => setMode(id)}
+              className={`px-5 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${
+                mode === id
+                  ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/30'
+                  : 'text-gray-400 hover:text-gray-200'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
 
-        {error && <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-6">{error}</div>}
+        {error && (
+          <div className="bg-red-900/20 border border-red-700/30 text-red-400 px-4 py-3 rounded-xl mb-5 text-sm animate-scale-in">
+            {error}
+          </div>
+        )}
 
         {/* TEXT MODE */}
         {mode === 'text' && (
-          <div className="bg-white rounded-2xl shadow-sm p-6">
-            <h3 className="font-semibold text-gray-700 mb-4">Describe yourself in plain text</h3>
+          <div className={sectionCls}>
+            <h3 className="font-semibold text-gray-200 mb-4 text-sm">Describe yourself in plain text</h3>
             <input
               type="text"
               placeholder="Resume Title"
               value={title}
               onChange={e => setTitle(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className={`${inputCls} mb-4`}
             />
             <textarea
               rows={10}
-              placeholder="Example: My name is Shivam Jaiswal. I am pursuing MCA in AI and ML from XYZ University. I know MERN stack, React, Node.js, MongoDB. I built a resume builder project. My email is shivam@gmail.com..."
+              placeholder="Example: My name is Shivam Jaiswal. I am pursuing MCA in AI and ML. I know MERN stack, React, Node.js, MongoDB. I built a resume builder project..."
               value={plainText}
               onChange={e => setPlainText(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+              className="textarea-dark"
             />
             <button
               onClick={handleTextSubmit}
               disabled={loading}
-              className="mt-4 w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 transition disabled:opacity-50"
+              className="btn-glow mt-4 w-full bg-purple-600 text-white py-3 rounded-xl font-semibold hover:bg-purple-700 transition disabled:opacity-40 text-sm"
             >
-              {loading ? '🤖 AI is building your resume...' : 'Generate Resume with AI'}
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
+                  AI is building your resume...
+                </span>
+              ) : 'Generate Resume with AI'}
             </button>
           </div>
         )}
 
         {/* FORM MODE */}
         {mode === 'form' && (
-          <div className="space-y-6">
+          <div className="space-y-4 stagger">
 
             {/* Title */}
-            <div className="bg-white rounded-2xl shadow-sm p-6">
-              <h3 className="font-semibold text-gray-700 mb-4">Resume Title</h3>
+            <div className={sectionCls}>
+              <h3 className="font-semibold text-gray-200 mb-4 text-sm">Resume Title</h3>
               <input
                 type="text"
                 value={form.title}
                 onChange={e => setForm({ ...form, title: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className={inputCls}
                 placeholder="My MCA Resume"
               />
             </div>
 
             {/* Personal Info */}
-            <div className="bg-white rounded-2xl shadow-sm p-6">
-              <h3 className="font-semibold text-gray-700 mb-4">👤 Personal Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className={sectionCls}>
+              <h3 className="font-semibold text-gray-200 mb-4 text-sm">👤 Personal Information</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {['name', 'email', 'phone', 'location', 'linkedin', 'github'].map(field => (
                   <input
                     key={field}
@@ -221,24 +226,24 @@ export default function Builder() {
                     placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
                     value={form.personalInfo[field]}
                     onChange={e => updatePersonal(field, e.target.value)}
-                    className="border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className={inputCls}
                   />
                 ))}
                 <textarea
                   placeholder="Summary (AI will enhance this)"
                   value={form.personalInfo.summary}
                   onChange={e => updatePersonal('summary', e.target.value)}
-                  className="border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 md:col-span-2 resize-none"
+                  className="textarea-dark sm:col-span-2"
                   rows={3}
                 />
               </div>
             </div>
 
             {/* Education */}
-            <div className="bg-white rounded-2xl shadow-sm p-6">
-              <h3 className="font-semibold text-gray-700 mb-4">🎓 Education</h3>
+            <div className={sectionCls}>
+              <h3 className="font-semibold text-gray-200 mb-4 text-sm">🎓 Education</h3>
               {form.education.map((edu, i) => (
-                <div key={i} className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div key={i} className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 pb-4 border-b border-purple-900/20 last:border-0 last:mb-0 last:pb-0">
                   {['institution', 'degree', 'field', 'startYear', 'endYear', 'grade'].map(field => (
                     <input
                       key={field}
@@ -246,24 +251,24 @@ export default function Builder() {
                       placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
                       value={edu[field]}
                       onChange={e => updateEducation(i, field, e.target.value)}
-                      className="border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className={inputCls}
                     />
                   ))}
                 </div>
               ))}
               <button
                 onClick={() => setForm({ ...form, education: [...form.education, { institution: '', degree: '', field: '', startYear: '', endYear: '', grade: '' }] })}
-                className="text-indigo-600 text-sm font-medium hover:underline"
+                className="text-purple-400 text-sm font-medium hover:text-purple-300 transition-colors"
               >
                 + Add Education
               </button>
             </div>
 
             {/* Experience */}
-            <div className="bg-white rounded-2xl shadow-sm p-6">
-              <h3 className="font-semibold text-gray-700 mb-4">💼 Experience</h3>
+            <div className={sectionCls}>
+              <h3 className="font-semibold text-gray-200 mb-4 text-sm">💼 Experience</h3>
               {form.experience.map((exp, i) => (
-                <div key={i} className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div key={i} className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 pb-4 border-b border-purple-900/20 last:border-0 last:mb-0 last:pb-0">
                   {['company', 'role', 'startDate', 'endDate'].map(field => (
                     <input
                       key={field}
@@ -271,43 +276,43 @@ export default function Builder() {
                       placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
                       value={exp[field]}
                       onChange={e => updateExperience(i, field, e.target.value)}
-                      className="border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className={inputCls}
                     />
                   ))}
                   <textarea
                     placeholder="Description (AI will enhance this)"
                     value={exp.description}
                     onChange={e => updateExperience(i, 'description', e.target.value)}
-                    className="border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 md:col-span-2 resize-none"
+                    className="textarea-dark sm:col-span-2"
                     rows={3}
                   />
                 </div>
               ))}
               <button
                 onClick={() => setForm({ ...form, experience: [...form.experience, { company: '', role: '', startDate: '', endDate: '', description: '' }] })}
-                className="text-indigo-600 text-sm font-medium hover:underline"
+                className="text-purple-400 text-sm font-medium hover:text-purple-300 transition-colors"
               >
                 + Add Experience
               </button>
             </div>
 
             {/* Skills */}
-            <div className="bg-white rounded-2xl shadow-sm p-6">
-              <h3 className="font-semibold text-gray-700 mb-4">🛠️ Skills</h3>
+            <div className={sectionCls}>
+              <h3 className="font-semibold text-gray-200 mb-4 text-sm">🛠️ Skills</h3>
               <input
                 type="text"
                 placeholder="React, Node.js, MongoDB, Python, ML (comma separated)"
                 value={form.skills}
                 onChange={e => setForm({ ...form, skills: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className={inputCls}
               />
             </div>
 
             {/* Projects */}
-            <div className="bg-white rounded-2xl shadow-sm p-6">
-              <h3 className="font-semibold text-gray-700 mb-4">🚀 Projects</h3>
+            <div className={sectionCls}>
+              <h3 className="font-semibold text-gray-200 mb-4 text-sm">🚀 Projects</h3>
               {form.projects.map((proj, i) => (
-                <div key={i} className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div key={i} className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 pb-4 border-b border-purple-900/20 last:border-0 last:mb-0 last:pb-0">
                   {['name', 'techStack', 'link'].map(field => (
                     <input
                       key={field}
@@ -315,21 +320,21 @@ export default function Builder() {
                       placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
                       value={proj[field]}
                       onChange={e => updateProject(i, field, e.target.value)}
-                      className="border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className={inputCls}
                     />
                   ))}
                   <textarea
                     placeholder="Project description (AI will enhance this)"
                     value={proj.description}
                     onChange={e => updateProject(i, 'description', e.target.value)}
-                    className="border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 md:col-span-2 resize-none"
+                    className="textarea-dark sm:col-span-2"
                     rows={3}
                   />
                 </div>
               ))}
               <button
                 onClick={() => setForm({ ...form, projects: [...form.projects, { name: '', description: '', techStack: '', link: '' }] })}
-                className="text-indigo-600 text-sm font-medium hover:underline"
+                className="text-purple-400 text-sm font-medium hover:text-purple-300 transition-colors"
               >
                 + Add Project
               </button>
@@ -339,9 +344,14 @@ export default function Builder() {
             <button
               onClick={handleFormSubmit}
               disabled={loading}
-              className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 transition disabled:opacity-50"
+              className="btn-glow w-full bg-purple-600 text-white py-3.5 rounded-xl font-semibold hover:bg-purple-700 transition disabled:opacity-40 text-sm sm:text-base animate-fade-up"
             >
-              {loading ? '🤖 AI is enhancing your resume...' : 'Generate Resume with AI'}
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
+                  AI is enhancing your resume...
+                </span>
+              ) : 'Generate Resume with AI'}
             </button>
           </div>
         )}
