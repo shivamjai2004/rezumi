@@ -115,11 +115,20 @@ export default function ResumeView() {
   const [docxLoading, setDocxLoading] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState('classic')
 
+  const [shareLoading, setShareLoading] = useState(false)
+  const [shareId, setShareId] = useState(null)
+  const [isPublic, setIsPublic] = useState(false)
+  const [copied, setCopied] = useState(false)
+
   useEffect(() => {
     const fetch = async () => {
       try {
         const { data } = await api.get(`/resume/${id}`)
         setResume(data)
+        if (data.isPublic && data.shareId) {
+          setIsPublic(true)
+          setShareId(data.shareId)
+        }
       } catch {
         navigate('/dashboard')
       } finally {
@@ -128,6 +137,41 @@ export default function ResumeView() {
     }
     fetch()
   }, [id])
+
+  const getShareUrl = (sid) => `${window.location.origin}/r/${sid}`
+
+  const handleShare = async () => {
+    setShareLoading(true)
+    try {
+      const { data } = await api.post(`/resume/${id}/share`)
+      setShareId(data.shareId)
+      setIsPublic(true)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setShareLoading(false)
+    }
+  }
+
+  const handleRevoke = async () => {
+    if (!window.confirm('Revoke public link? Anyone with the link will no longer be able to view this resume.')) return
+    setShareLoading(true)
+    try {
+      await api.delete(`/resume/${id}/share`)
+      setShareId(null)
+      setIsPublic(false)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setShareLoading(false)
+    }
+  }
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(getShareUrl(shareId))
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   const downloadDOCX = async () => {
     setDocxLoading(true)
@@ -163,17 +207,13 @@ export default function ResumeView() {
     <div className="min-h-screen bg-[#0f0f13]">
       <nav className="navbar-glass px-4 sm:px-8 py-4 flex justify-between items-center">
         <h1 className="text-xl sm:text-2xl font-bold text-purple-400 tracking-tight">Rezumi</h1>
-        <button
-          onClick={() => navigate('/dashboard')}
-          className="text-gray-400 hover:text-purple-400 font-medium text-sm transition-colors"
-        >
+        <button onClick={() => navigate('/dashboard')} className="text-gray-400 hover:text-purple-400 font-medium text-sm transition-colors">
           ← Back
         </button>
       </nav>
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
 
-        {/* Title */}
         <h2 className="text-xl sm:text-2xl font-bold text-white mb-6 animate-fade-up">{resume.title}</h2>
 
         {/* Template Picker */}
@@ -191,9 +231,7 @@ export default function ResumeView() {
                     : 'border-purple-900/20 hover:border-purple-600/40 hover:scale-[1.01]'
                 }`}
               >
-                <div className="h-20 sm:h-24 w-full overflow-hidden bg-gray-50">
-                  {template.preview}
-                </div>
+                <div className="h-20 sm:h-24 w-full overflow">{template.preview}</div>
                 <div className="p-2 bg-[#22223a] text-left">
                   <div className="flex items-center justify-between gap-1">
                     <span className="text-xs font-semibold text-gray-200 truncate">{template.name}</span>
@@ -209,16 +247,14 @@ export default function ResumeView() {
         </div>
 
         {/* Download Buttons */}
-        <div className="flex gap-2 sm:gap-3 mb-6 animate-fade-up" style={{ animationDelay: '100ms' }}>
+        <div className="flex flex-wrap gap-2 sm:gap-3 mb-4 animate-fade-up" style={{ animationDelay: '100ms' }}>
           <PDFDownloadLink
             key={selectedTemplate}
             document={getDocument(selectedTemplate, resume)}
             fileName={`${resume.title || 'resume'}-${selectedTemplate}.pdf`}
             className="btn-glow flex-1 sm:flex-none text-center bg-purple-600 text-white px-4 sm:px-6 py-2.5 rounded-xl font-semibold hover:bg-purple-700 transition text-xs sm:text-sm shadow-lg shadow-purple-900/30"
           >
-            {({ loading: pdfLoading }) =>
-              pdfLoading ? 'Preparing...' : `⬇ PDF — ${activeTemplate?.name}`
-            }
+            {({ loading: pdfLoading }) => pdfLoading ? 'Preparing...' : `⬇ PDF — ${activeTemplate?.name}`}
           </PDFDownloadLink>
           <button
             onClick={downloadDOCX}
@@ -229,10 +265,64 @@ export default function ResumeView() {
           </button>
         </div>
 
-        {/* Resume Preview Card */}
-        <div className="card p-5 sm:p-8 animate-fade-up" style={{ animationDelay: '140ms' }}>
+        {/* Share Section */}
+        <div className="card p-4 sm:p-5 mb-6 animate-fade-up" style={{ animationDelay: '130ms' }}>
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-200">🔗 Public Share Link</h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {isPublic ? 'Anyone with the link can view this resume' : 'Generate a link to share your resume publicly'}
+              </p>
+            </div>
+            {!isPublic ? (
+              <button
+                onClick={handleShare}
+                disabled={shareLoading}
+                className="btn-glow bg-purple-600 text-white px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold hover:bg-purple-700 transition disabled:opacity-40 whitespace-nowrap"
+              >
+                {shareLoading ? (
+                  <span className="flex items-center gap-1.5">
+                    <span className="animate-spin w-3 h-3 border-2 border-white/30 border-t-white rounded-full" />
+                    Generating...
+                  </span>
+                ) : 'Generate Link'}
+              </button>
+            ) : (
+              <button
+                onClick={handleRevoke}
+                disabled={shareLoading}
+                className="text-red-400 text-xs font-medium hover:text-red-300 transition-colors disabled:opacity-40 whitespace-nowrap"
+              >
+                {shareLoading ? 'Revoking...' : 'Revoke Link'}
+              </button>
+            )}
+          </div>
 
-          {/* Header */}
+          {isPublic && shareId && (
+            <div className="mt-3 flex items-center gap-2 animate-scale-in">
+              <div className="flex-1 bg-[#0f0f13] border border-purple-900/30 rounded-lg px-3 py-2 text-xs text-purple-300 font-mono truncate">
+                {getShareUrl(shareId)}
+              </div>
+              <button
+                onClick={handleCopy}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap"
+              >
+                {copied ? '✓ Copied!' : 'Copy'}
+              </button>
+              <a
+                href={getShareUrl(shareId)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-[#22223a] border border-purple-900/30 text-gray-300 hover:text-purple-400 px-3 py-2 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap"
+              >
+                Preview ↗
+              </a>
+            </div>
+          )}
+        </div>
+
+        {/* Resume Preview */}
+        <div className="card p-5 sm:p-8 animate-fade-up" style={{ animationDelay: '160ms' }}>
           <div className="border-b-2 border-purple-600 pb-4 mb-6">
             <h1 className="text-2xl sm:text-3xl font-bold text-purple-400">{resume.personalInfo?.name}</h1>
             <div className="flex flex-wrap gap-2 sm:gap-4 mt-2 text-xs sm:text-sm text-gray-500">
@@ -250,7 +340,6 @@ export default function ResumeView() {
               <p className="text-gray-400 text-sm leading-relaxed">{resume.personalInfo.summary}</p>
             </div>
           )}
-
           {resume.education?.length > 0 && (
             <div className="mb-5 sm:mb-6">
               <h2 className="text-xs font-bold text-purple-400 uppercase tracking-widest mb-3">Education</h2>
@@ -265,7 +354,6 @@ export default function ResumeView() {
               ))}
             </div>
           )}
-
           {resume.experience?.some(e => e.company) && (
             <div className="mb-5 sm:mb-6">
               <h2 className="text-xs font-bold text-purple-400 uppercase tracking-widest mb-3">Experience</h2>
@@ -281,18 +369,14 @@ export default function ResumeView() {
               ))}
             </div>
           )}
-
           {resume.skills?.length > 0 && (
             <div className="mb-5 sm:mb-6">
               <h2 className="text-xs font-bold text-purple-400 uppercase tracking-widest mb-3">Skills</h2>
               <div className="flex flex-wrap gap-2">
-                {resume.skills.map((skill, i) => (
-                  <span key={i} className="tag-purple">{skill}</span>
-                ))}
+                {resume.skills.map((skill, i) => <span key={i} className="tag-purple">{skill}</span>)}
               </div>
             </div>
           )}
-
           {resume.projects?.some(p => p.name) && (
             <div>
               <h2 className="text-xs font-bold text-purple-400 uppercase tracking-widest mb-3">Projects</h2>
@@ -305,7 +389,7 @@ export default function ResumeView() {
                 </div>
               ))}
             </div>
-                     )}
+          )}
         </div>
       </div>
     </div>

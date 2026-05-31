@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import ResumeView from './pages/ResumeView'
+import PublicResume from './pages/PublicResume'
 import Home from './pages/Home'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -19,6 +20,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/r/:shareId" element={<PublicResume />} />
         <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
         <Route path="/builder" element={<PrivateRoute><Builder /></PrivateRoute>} />
         <Route path="/analyzer" element={<PrivateRoute><Analyzer /></PrivateRoute>} />
