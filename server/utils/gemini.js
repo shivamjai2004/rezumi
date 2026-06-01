@@ -2,13 +2,11 @@ const Groq = require('groq-sdk');
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-// Helper to clean JSON response
 const cleanJSON = (text) => {
   const cleaned = text.replace(/```json|```/g, '').trim();
   return JSON.parse(cleaned);
 };
 
-// Helper to call Groq
 const callAI = async (prompt) => {
   const response = await groq.chat.completions.create({
     model: 'llama-3.1-8b-instant',
@@ -17,7 +15,6 @@ const callAI = async (prompt) => {
   return response.choices[0].message.content;
 };
 
-// 1. Enhance resume content (Form mode)
 const enhanceResumeContent = async (rawData) => {
   const prompt = `
     You are an expert resume writer. Enhance the following resume content 
@@ -31,7 +28,6 @@ const enhanceResumeContent = async (rawData) => {
   return cleanJSON(text);
 };
 
-// 2. Plain text to structured resume (Text mode)
 const parseTextToResume = async (plainText) => {
   const prompt = `
     Extract and structure the following text into a resume JSON with these exact fields:
@@ -54,7 +50,6 @@ const parseTextToResume = async (plainText) => {
   return cleanJSON(text);
 };
 
-// 3. Resume vs Job Description analysis
 const analyzeResumeMatch = async (resumeText, jobDescription) => {
   const prompt = `
     You are an ATS expert. Compare this resume with the job description.
@@ -75,4 +70,27 @@ const analyzeResumeMatch = async (resumeText, jobDescription) => {
   return cleanJSON(text);
 };
 
-module.exports = { enhanceResumeContent, parseTextToResume, analyzeResumeMatch };
+const scoreResumeCard = async (resume) => {
+  const resumeText = JSON.stringify(resume);
+  const prompt = `
+    You are an expert resume reviewer. Score this resume on exactly 5 criteria.
+    Return ONLY a valid JSON object with this exact structure, no markdown, no backticks:
+    {
+      "overall": <number 0-100>,
+      "criteria": [
+        { "name": "ATS Compatibility", "score": <0-100>, "icon": "🤖", "feedback": "<one sentence tip>" },
+        { "name": "Impact & Achievements", "score": <0-100>, "icon": "🎯", "feedback": "<one sentence tip>" },
+        { "name": "Skills Relevance", "score": <0-100>, "icon": "🛠️", "feedback": "<one sentence tip>" },
+        { "name": "Clarity & Readability", "score": <0-100>, "icon": "📖", "feedback": "<one sentence tip>" },
+        { "name": "Format & Structure", "score": <0-100>, "icon": "📐", "feedback": "<one sentence tip>" }
+      ],
+      "topSuggestions": ["<tip 1>", "<tip 2>", "<tip 3>"]
+    }
+    Be honest and specific. Score based on actual resume content.
+    Resume data: ${resumeText}
+  `;
+  const text = await callAI(prompt);
+  return cleanJSON(text);
+};
+
+module.exports = { enhanceResumeContent, parseTextToResume, analyzeResumeMatch, scoreResumeCard };

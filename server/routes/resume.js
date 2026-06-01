@@ -8,7 +8,7 @@ const {
   getMyResumes, getResumeById, updateResume, deleteResume
 } = require('../controllers/resumeController');
 
-// ── Public (no auth) ───────────────────────────────────────────
+// Public — no auth
 router.get('/public/:shareId', async (req, res) => {
   try {
     const resume = await Resume.findOne({ shareId: req.params.shareId, isPublic: true }).select('-user');
@@ -17,7 +17,7 @@ router.get('/public/:shareId', async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// ── Protected ──────────────────────────────────────────────────
+// Protected — auth required
 router.use(protect);
 
 router.get('/', getMyResumes);
@@ -58,6 +58,17 @@ router.delete('/:id/share', async (req, res) => {
     resume.shareId = undefined;
     await resume.save();
     res.json({ isPublic: false });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// AI Resume Score Card
+router.post('/:id/score', async (req, res) => {
+  try {
+    const resume = await Resume.findOne({ _id: req.params.id, user: req.user.id });
+    if (!resume) return res.status(404).json({ message: 'Resume not found' });
+    const { scoreResumeCard } = require('../utils/gemini');
+    const scoreCard = await scoreResumeCard(resume);
+    res.json(scoreCard);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
